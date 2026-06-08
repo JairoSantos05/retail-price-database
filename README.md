@@ -1,2 +1,2 @@
 # retail-price-API
-Stores and maintains prices from various websites
+API to connect the scraper and database to frontend
