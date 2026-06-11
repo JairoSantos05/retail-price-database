@@ -1,7 +1,8 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
 from typing import List
-from dbqueries import get_prices_for_book
+from dbqueries import (get_prices_for_book, best_deals, price_history)
+from datetime import datetime
 
 class Price(BaseModel):
     store: str
@@ -13,8 +14,51 @@ class Product(BaseModel):
     prices: List[Price]
     lowest_price: float
 
+class Deal(BaseModel):
+    isbn: str
+    store: str
+    price: float
+
+class PriceRange(BaseModel):
+    lowest_price: float | None
+    highest_price: float | None
+
+class PriceHistoryPoint(BaseModel):
+    date: str
+    store: str
+    price: float
+
+class BookHistoryResponse(BaseModel):
+    isbn: str
+    history: List[PriceHistoryPoint]
+
 app = FastAPI()
 
 @app.get("/book/{isbn}/prices")
 def book_prices(isbn: str):
+    """Get cheapest price for a book given isbn."""
     return get_prices_for_book(isbn)
+
+
+@app.get("/deals", response_model=List[Deal])
+def get_deals(limit: int = 10):
+    """Get the absolute cheapest book prices tracked across the entire system."""
+    raw_deals = best_deals(limit)
+    
+    formatted_deals = [
+        Deal(isbn=row[0], store=row[1], price=row[2]) 
+        for row in raw_deals
+    ]
+    return formatted_deals
+
+@app.get("/book/{isbn}/history", response_model=BookHistoryResponse)
+def book_price_history(isbn: str):
+    """Returns every recorded price change over time for a graphic novel."""
+    raw_history = price_history(isbn)
+    
+    formatted_history = [
+        PriceHistoryPoint(date=str(row[0]), store=row[1], price=row[2])
+        for row in raw_history
+    ]
+    
+    return BookHistoryResponse(isbn=isbn, history=formatted_history)
