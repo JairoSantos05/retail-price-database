@@ -36,10 +36,10 @@ def price_history(isbn):
     cursor = conn.cursor()
     
     cursor.execute("""
-        SELECT scraped_at, store, price
+        SELECT date, retailer, price
         FROM Prices
         WHERE isbn = ?
-        ORDER BY scraped_at ASC
+        ORDER BY date ASC
     """, (isbn,))
     
     results = cursor.fetchall()

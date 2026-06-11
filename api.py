@@ -9,13 +9,13 @@ class Price(BaseModel):
     price: float
 
 class Product(BaseModel):
-    isbn: str
+    isbn: int
     title: str
     prices: List[Price]
     lowest_price: float
 
 class Deal(BaseModel):
-    isbn: str
+    isbn: int
     store: str
     price: float
 
@@ -26,16 +26,16 @@ class PriceRange(BaseModel):
 class PriceHistoryPoint(BaseModel):
     date: str
     store: str
-    price: float
+    price: float | None
 
 class BookHistoryResponse(BaseModel):
-    isbn: str
+    isbn: int
     history: List[PriceHistoryPoint]
 
 app = FastAPI()
 
 @app.get("/book/{isbn}/prices")
-def book_prices(isbn: str):
+def book_prices(isbn: int):
     """Get cheapest price for a book given isbn."""
     return get_prices_for_book(isbn)
 
@@ -52,13 +52,19 @@ def get_deals(limit: int = 10):
     return formatted_deals
 
 @app.get("/book/{isbn}/history", response_model=BookHistoryResponse)
-def book_price_history(isbn: str):
+def book_price_history(isbn: int):
     """Returns every recorded price change over time for a graphic novel."""
     raw_history = price_history(isbn)
     
-    formatted_history = [
-        PriceHistoryPoint(date=str(row[0]), store=row[1], price=row[2])
-        for row in raw_history
-    ]
-    
+    formatted_history = []
+    for row in raw_history:
+        if row[2] is not None:
+            formatted_history.append(
+                PriceHistoryPoint(
+                    date=str(row[0]), 
+                    store=row[1],
+                    price=row[2]
+                )
+            )
+            
     return BookHistoryResponse(isbn=isbn, history=formatted_history)
